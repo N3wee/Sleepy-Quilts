@@ -64,5 +64,58 @@ def input_sales_data():
         print(f"Error appending sales data: {e}")
 
 
-# Run the input sales function
-input_sales_data()        
+def fetch_stock_data():
+    """
+    Fetch stock data from the 'Raw Stock' sheet.
+    Returns a tuple of stock data and the next available week number.
+    """
+    try:
+        stock_sheet = SHEET.worksheet('Raw Stock')
+        stock_data = stock_sheet.get_all_values()
+
+        if len(stock_data) > 1:  # Ensure there's data beyond the header
+            last_week = int(stock_data[-1][0])
+            current_week = last_week + 1
+        else:
+            current_week = 1
+
+        print("Stock data successfully fetched!")
+        return stock_data, current_week
+    except Exception as e:
+        print(f"Error fetching stock data: {e}")
+        return None, None
+
+
+def input_stock_data():
+    """
+    Get user input for stock data (Cotton and Fibre) and append it to the 'Raw Stock' sheet.
+    """
+    try:
+        # Fetch stock data to determine the week number
+        stock_data, current_week = fetch_stock_data()
+
+        # Inform the user of the current week they are entering data for
+        print(f"Please enter stock figures for Week {current_week}:")
+        cotton_stock = float(input("Enter the current stock of Cotton (in meters): "))
+        fibre_stock = float(input("Enter the current stock of Fibre (in kilograms): "))
+
+        # Validate that stock levels are non-negative
+        if cotton_stock < 0 or fibre_stock < 0:
+            print("Stock levels must be non-negative. Please try again.")
+            return
+
+        # Include the week number in the data to be appended
+        new_stock_data = [current_week, cotton_stock, fibre_stock]
+
+        # Append the stock data with the week number to the sheet
+        stock_sheet = SHEET.worksheet('Raw Stock')
+        stock_sheet.append_row(new_stock_data)
+        print(f"Stock data for Week {current_week} successfully added to the sheet!")
+    except ValueError:
+        print("Invalid input. Please enter numeric values for stock levels.")
+    except Exception as e:
+        print(f"Error appending stock data: {e}")   
+
+stock_data = fetch_stock_data()
+
+input_stock_data()
