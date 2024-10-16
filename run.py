@@ -14,3 +14,20 @@ CREDS = Credentials.from_service_account_file('creds.json')
 SCOPED_CREDS = CREDS.with_scopes(SCOPE)
 GSPREAD_CLIENT = gspread.authorize(SCOPED_CREDS)
 SHEET = GSPREAD_CLIENT.open('SleepyQuilts')
+
+def fetch_sales_data():
+    """
+    Fetch sales data from the 'Sales' sheet.
+    Returns a list of lists where each inner list represents a week's sales data.
+    """
+    try:
+        sales_sheet = SHEET.worksheet('Sales')
+        sales_data = sales_sheet.get_all_values()
+        print("Sales data successfully fetched!")
+        return sales_data
+    except Exception as e:
+        print(f"Error fetching sales data: {e}")
+        return None
+
+sales_data = fetch_sales_data()
+print(sales_data)  # This will print the sales data to verify it's working correctly.
