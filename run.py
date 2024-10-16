@@ -146,14 +146,14 @@ def fetch_duvet_stock():
         return None, None, None
 
 
-def update_duvet_stock():
+def update_duvet_stock(current_week):
     """
     Update the 'Duvet Stock' sheet by subtracting the current week's sales
-    from the current duvet stock levels.
+    from the current duvet stock levels, using the same week as sales.
     """
     try:
         # Fetch the current week's sales data
-        sales_data, current_week = fetch_sales_data()
+        sales_data, _ = fetch_sales_data()
         current_week_sales = sales_data[-1]  # Get the most recent sales data
 
         # Fetch the current duvet stock levels
@@ -164,7 +164,7 @@ def update_duvet_stock():
         new_stock_double = max(0, current_stock_double - int(current_week_sales[2]))  # Double duvet stock
         new_stock_king = max(0, current_stock_king - int(current_week_sales[3]))  # King duvet stock
 
-        # Prepare new duvet stock data with the current week
+        # Prepare new duvet stock data with the correct week number
         new_duvet_stock_data = [current_week, new_stock_single, new_stock_double, new_stock_king]
 
         # Append the updated stock levels to the Duvet Stock sheet
@@ -230,3 +230,27 @@ def calculate_production():
 
     except Exception as e:
         print(f"Error calculating production requirements: {e}")
+
+def main():
+    """
+    Main function to run the data input and processing in sequence.
+    Input sales, input stock, update duvet stock, and calculate production.
+    """
+    # Step 1: Input sales data
+    print("\nStep 1: Input Sales Data")
+    sales_data, current_week = fetch_sales_data()
+    input_sales_data()
+
+    # Step 2: Input stock data
+    print("\nStep 2: Input Raw Material Stock Data")
+    input_stock_data()
+
+    # Step 3: Update duvet stock based on the sales data
+    print("\nStep 3: Update Duvet Stock")
+    update_duvet_stock(current_week)
+
+    # Step 4: Calculate production requirements for the upcoming week
+    print("\nStep 4: Calculate Production Requirements")
+    calculate_production()
+
+main()
