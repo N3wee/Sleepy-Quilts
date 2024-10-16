@@ -18,16 +18,51 @@ SHEET = GSPREAD_CLIENT.open('SleepyQuilts')
 def fetch_sales_data():
     """
     Fetch sales data from the 'Sales' sheet.
-    Returns a list of lists where each inner list represents a week's sales data.
+    Returns a tuple of sales data and the next available week number.
     """
     try:
         sales_sheet = SHEET.worksheet('Sales')
         sales_data = sales_sheet.get_all_values()
+
+        if len(sales_data) > 1:  # Ensure there's data beyond the header
+            # Get the last week's number from the last row's first column
+            last_week = int(sales_data[-1][0])
+            current_week = last_week + 1
+        else:
+            # If no previous data or just the header, set current week as 1
+            current_week = 1
+
         print("Sales data successfully fetched!")
-        return sales_data
+        return sales_data, current_week
     except Exception as e:
         print(f"Error fetching sales data: {e}")
-        return None
+        return None, None
 
-sales_data = fetch_sales_data()
-print(sales_data)  # This will print the sales data to verify it's working correctly.
+
+def input_sales_data():
+    """
+    Get user input for sales data and append it to the 'Sales' sheet along with the week number.
+    """
+    try:
+        # Fetch sales data to determine the week number
+        sales_data, current_week = fetch_sales_data()
+
+        # Inform the user of the current week they are entering data for
+        print(f"Please enter sales figures for Week {current_week}:")
+        single_sales = int(input("Enter the number of Single duvets sold: "))
+        double_sales = int(input("Enter the number of Double duvets sold: "))
+        king_sales = int(input("Enter the number of King duvets sold: "))
+
+        # Include the week number in the data to be appended
+        new_sales_data = [current_week, single_sales, double_sales, king_sales]
+
+        # Append the sales data with the week number to the sheet
+        sales_sheet = SHEET.worksheet('Sales')
+        sales_sheet.append_row(new_sales_data)
+        print(f"Sales data for Week {current_week} successfully added to the sheet!")
+    except Exception as e:
+        print(f"Error appending sales data: {e}")
+
+
+# Run the input sales function
+input_sales_data()        
