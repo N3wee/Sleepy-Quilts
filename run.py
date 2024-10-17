@@ -169,9 +169,52 @@ def get_current_stock():
 
 def view_production_schedule():
     """
-    Placeholder function for viewing production schedule.
+    Calculate and display the production requirements for tomorrow based on orders.
     """
-    print("Viewing production schedule... (functionality to be implemented)")
+    try:
+        # Fetch tomorrow's date
+        tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+        print(f"\nProduction Schedule for {tomorrow.strftime('%A, %B %d, %Y')}:")
+        
+        # Fetch tomorrow's orders
+        orders_tomorrow = get_orders_for_today(tomorrow)
+        if not orders_tomorrow:
+            print(f"No orders for tomorrow yet.")
+            return
+        
+        # Fetch material usage data
+        material_usage_sheet = SHEET.worksheet('Material Usage')
+        material_usage_data = material_usage_sheet.get_all_values()
+
+        # Extract material usage per duvet size
+        usage_single = {'cotton': float(material_usage_data[1][1]), 'fibre': float(material_usage_data[1][2])}
+        usage_double = {'cotton': float(material_usage_data[2][1]), 'fibre': float(material_usage_data[2][2])}
+        usage_king = {'cotton': float(material_usage_data[3][1]), 'fibre': float(material_usage_data[3][2])}
+
+        # Calculate raw material requirements
+        cotton_required = (
+            orders_tomorrow['single'] * usage_single['cotton'] +
+            orders_tomorrow['double'] * usage_double['cotton'] +
+            orders_tomorrow['king'] * usage_king['cotton']
+        )
+        fibre_required = (
+            orders_tomorrow['single'] * usage_single['fibre'] +
+            orders_tomorrow['double'] * usage_double['fibre'] +
+            orders_tomorrow['king'] * usage_king['fibre']
+        )
+
+        # Display production and material requirements
+        print(f"\nDuvets to Produce:")
+        print(f"Single Duvets: {orders_tomorrow['single']}")
+        print(f"Double Duvets: {orders_tomorrow['double']}")
+        print(f"King Duvets: {orders_tomorrow['king']}")
+
+        print(f"\nRaw Materials Needed for Production:")
+        print(f"Cotton Required: {round(cotton_required, 2)} meters")
+        print(f"Fibre Required: {round(fibre_required, 2)} kg")
+
+    except Exception as e:
+        print(f"Error calculating production requirements: {e}")
 
 
 main()
