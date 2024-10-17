@@ -32,11 +32,10 @@ def main():
     # Show overview
     show_overview()
 
-    # Fetch current stock to check if it's below 20%
-    cotton_stock, fibre_stock = get_current_stock()
-
     while True:
         tomorrow = today + datetime.timedelta(days=1)
+        
+        # Navigation options
         if check_if_orders_exist(tomorrow):
             print("\nWhat would you like to do?")
             print("1. Rewrite orders for tomorrow")
@@ -45,32 +44,25 @@ def main():
             print("1. Input Orders for Tomorrow")
         
         print("2. View Production Requirements for Tomorrow")
-
-        # Allow raw materials order on Fridays or if stock falls below 20%
-        if today.strftime('%A') == "Friday" or cotton_stock < (MAX_COTTON_STOCK * 0.2) or fibre_stock < (MAX_FIBRE_STOCK * 0.2):
-            print("3. Order raw materials (Fridays or -20% stock)")
-
+        print("3. Order raw materials")
         print("4. Close the day and move to next day")
         print("5. Exit")
 
-        # Capture the user input
         choice = input("Enter your choice: ")
 
-        # Handle input choices with proper validation
         if choice == "1":
-            input_orders(tomorrow)  # Pass tomorrow's date
+            input_orders(tomorrow)  # Input or rewrite orders for tomorrow
         elif choice == "2":
-            view_production_schedule()  # Calculate production requirements
-        elif choice == "3" and (today.strftime('%A') == "Friday" or cotton_stock < (MAX_COTTON_STOCK * 0.2) or fibre_stock < (MAX_FIBRE_STOCK * 0.2)):
-            request_raw_materials()
+            view_production_schedule(tomorrow)  # View tomorrow's production requirements
+        elif choice == "3":
+            request_raw_materials()  # Order raw materials
         elif choice == "4":
-            today = close_day(today)
+            today = close_day(today)  # Close the day and move to next day
         elif choice == "5":
             print("Exiting the system. Goodbye!")
             break
         else:
             print("Invalid choice, please try again.")
-
 
 def show_overview():
     """
@@ -97,12 +89,11 @@ def show_overview():
 
 def input_orders(tomorrow):
     """
-    Input or rewrite sales orders for tomorrow's production.
+    Input or rewrite sales orders for the next business day.
     """
     try:
         print(f"\nPlease enter orders for {tomorrow.strftime('%A, %B %d, %Y')}:")
         
-        # Get orders from the user
         single_orders = int(input("Enter the number of Single duvets ordered: "))
         double_orders = int(input("Enter the number of Double duvets ordered: "))
         king_orders = int(input("Enter the number of King duvets ordered: "))
@@ -127,7 +118,6 @@ def input_orders(tomorrow):
     
     except Exception as e:
         print(f"Error recording orders: {e}")
-
 
 def check_if_orders_exist(tomorrow):
     """
@@ -184,13 +174,27 @@ def get_current_stock():
         print(f"Error fetching stock data: {e}")
         return 0, 0  # Return 0 if there's an error
 
-def view_production_schedule():
+def request_raw_materials():
+    """
+    Order raw materials if stock is below 20%, otherwise notify the user.
+    """
+    cotton_stock, fibre_stock = get_current_stock()
+
+    if cotton_stock < MAX_COTTON_STOCK * 0.2 or fibre_stock < MAX_FIBRE_STOCK * 0.2:
+        print("Ordering raw materials with 1-day lead time...")
+        # Update stock in Google Sheets (simplified for demonstration)
+        new_stock_row = [datetime.date.today().strftime('%Y-%m-%d'), MAX_COTTON_STOCK, MAX_FIBRE_STOCK]
+        stock_sheet = SHEET.worksheet('Material Stock')
+        stock_sheet.append_row(new_stock_row)
+        print("Raw materials will arrive tomorrow.")
+    else:
+        print("Raw materials stock is above 20%. No need to order.")
+
+def view_production_schedule(tomorrow):
     """
     Calculate and display the production requirements for tomorrow based on orders.
     """
     try:
-        # Fetch tomorrow's date
-        tomorrow = datetime.date.today() + datetime.timedelta(days=1)
         print(f"\nProduction Schedule for {tomorrow.strftime('%A, %B %d, %Y')}:")
         
         # Fetch tomorrow's orders
@@ -239,6 +243,7 @@ def close_day(current_day):
     Deduct raw materials used for production from stock.
     """
     tomorrow = current_day + datetime.timedelta(days=1)
+    
     print(f"\nClosing the day. Moving to {tomorrow.strftime('%A, %B %d, %Y')}.")
 
     # Deduct raw materials based on today's production
@@ -269,9 +274,9 @@ def close_day(current_day):
         updated_cotton_stock = max(0, cotton_stock - cotton_used)
         updated_fibre_stock = max(0, fibre_stock - fibre_used)
 
-        # Update stock in Google Sheets
+        # Update stock in Google Sheets and mark the day as closed
+        new_stock_row = [tomorrow.strftime('%Y-%m-%d'), updated_cotton_stock, updated_fibre_stock, "Closed"]
         stock_sheet = SHEET.worksheet('Material Stock')
-        new_stock_row = [tomorrow.strftime('%Y-%m-%d'), updated_cotton_stock, updated_fibre_stock]
         stock_sheet.append_row(new_stock_row)
 
         print(f"\nRaw materials deducted. Updated stock for {tomorrow.strftime('%A, %B %d, %Y')} recorded.")
@@ -279,12 +284,5 @@ def close_day(current_day):
         print("\nNo orders to produce today, stock remains unchanged.")
 
     return tomorrow
-
-def request_raw_materials():
-    """
-    Placeholder function for requesting raw materials.
-    """
-    print("Ordering raw materials with 1-day lead time...")
-
 
 main()
