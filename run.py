@@ -16,13 +16,18 @@ SCOPED_CREDS = CREDS.with_scopes(SCOPE)
 GSPREAD_CLIENT = gspread.authorize(SCOPED_CREDS)
 SHEET = GSPREAD_CLIENT.open('SleepyQuilts')
 
+# Define the maximum stock levels
+MAX_COTTON_STOCK = 3000  # Max cotton in meters
+MAX_FIBRE_STOCK = 1000   # Max fibre in kg
+
 def main():
     """
     Main function to handle user navigation and display overview.
     Displays a welcome message, today's date, orders to produce today, and current stock.
     """
     today = datetime.date.today()
-    print(f"Welcome to Sleepy Quilts Production System - {today.strftime('%A, %B %d, %Y')}")
+    print(f"Welcome to Sleepy Quilts Production System")
+    print(f"\nDate: {today.strftime('%A, %B %d, %Y')}")
 
     # Show overview
     show_overview(today)
@@ -65,24 +70,47 @@ def show_overview(today):
     # Fetch current stock levels
     cotton_stock, fibre_stock = get_current_stock()
     print(f"\nCurrent Stock Levels:")
-    print(f"Cotton: {cotton_stock} meters")
-    print(f"Fibre: {fibre_stock} kg")
+    print(f"Cotton: {cotton_stock} / {MAX_COTTON_STOCK} meters")
+    print(f"Fibre: {fibre_stock} / {MAX_FIBRE_STOCK} kg")
 
 def get_orders_for_today(today):
     """
-    Fetch today's orders from the Orders Sheet (Placeholder function).
+    Fetch today's orders from the Orders Sheet.
     """
-    # Placeholder logic to simulate fetching orders from the Orders sheet
-    # Replace this with the actual Google Sheets fetching logic later
-    return {'single': 50, 'double': 30, 'king': 20}  # Dummy data
+    try:
+        orders_sheet = SHEET.worksheet('Orders')
+        orders_data = orders_sheet.get_all_values()
+        
+        # Iterate through rows and find today's orders
+        for row in orders_data:
+            if row[0] == today.strftime('%Y-%m-%d'):
+                return {
+                    'single': int(row[1]),
+                    'double': int(row[2]),
+                    'king': int(row[3])
+                }
+        return None  # No orders for today
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+        return None
 
 def get_current_stock():
     """
-    Fetch current stock levels from the Material Stock Sheet (Placeholder function).
+    Fetch current stock levels from the Material Stock Sheet.
     """
-    # Placeholder logic to simulate fetching stock from the Material Stock sheet
-    # Replace this with the actual Google Sheets fetching logic later
-    return 1000, 500  # Dummy data (1000 meters of cotton, 500 kg of fibre)
+    try:
+        stock_sheet = SHEET.worksheet('Material Stock')
+        stock_data = stock_sheet.get_all_values()
+
+        # Get the last row (most recent stock values)
+        last_stock = stock_data[-1]
+        cotton_stock = float(last_stock[1])
+        fibre_stock = float(last_stock[2])
+
+        return cotton_stock, fibre_stock
+    except Exception as e:
+        print(f"Error fetching stock data: {e}")
+        return 0, 0  # Return 0 if there's an error
 
 def input_orders():
     """
