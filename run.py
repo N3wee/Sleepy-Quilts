@@ -1,6 +1,3 @@
-# Your code goes here.
-# You can delete these comments, but do not change the name of this file
-# Write your code to expect a terminal of 80 characters wide and 24 rows high
 import gspread
 from google.oauth2.service_account import Credentials
 import datetime
@@ -9,7 +6,7 @@ SCOPE = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive.file",
     "https://www.googleapis.com/auth/drive"
-    ]
+]
 
 CREDS = Credentials.from_service_account_file('creds.json')
 SCOPED_CREDS = CREDS.with_scopes(SCOPE)
@@ -19,6 +16,7 @@ SHEET = GSPREAD_CLIENT.open('SleepyQuilts')
 # Define the maximum stock levels
 MAX_COTTON_STOCK = 3000  # Max cotton in meters
 MAX_FIBRE_STOCK = 1000   # Max fibre in kg
+
 
 def main():
     """
@@ -34,15 +32,14 @@ def main():
 
     while True:
         tomorrow = today + datetime.timedelta(days=1)
-        
+
         # Navigation options
         if check_if_orders_exist(tomorrow):
-            print("\nWhat would you like to do?")
-            print("1. Rewrite orders for tomorrow")
+            print("\n1. Received tomorrow’s orders. Would you like to rewrite them?")
         else:
             print("\nWhat would you like to do?")
             print("1. Input Orders for Tomorrow")
-        
+
         print("2. View Production Requirements for Tomorrow")
         print("3. Order raw materials")
         print("4. Close the day and move to next day")
@@ -64,6 +61,7 @@ def main():
         else:
             print("Invalid choice, please try again.")
 
+
 def show_overview():
     """
     Display today's orders and current stock overview.
@@ -80,20 +78,21 @@ def show_overview():
         print(f"King Duvets: {orders_today['king']}")
     else:
         print("\nNo orders to produce today.")
-    
+
     # Fetch current stock levels
     cotton_stock, fibre_stock = get_current_stock()
     print(f"\nCurrent Stock Levels:")
     print(f"Cotton: {cotton_stock} / {MAX_COTTON_STOCK} meters")
     print(f"Fibre: {fibre_stock} / {MAX_FIBRE_STOCK} kg")
 
+
 def input_orders(tomorrow):
     """
-    Input or rewrite sales orders for the next business day.
+    Input or rewrite sales orders for the next day.
     """
     try:
         print(f"\nPlease enter orders for {tomorrow.strftime('%A, %B %d, %Y')}:")
-        
+
         single_orders = int(input("Enter the number of Single duvets ordered: "))
         double_orders = int(input("Enter the number of Double duvets ordered: "))
         king_orders = int(input("Enter the number of King duvets ordered: "))
@@ -106,7 +105,7 @@ def input_orders(tomorrow):
         for idx, row in enumerate(orders_data):
             if row[0] == tomorrow.strftime('%Y-%m-%d'):
                 row_to_update = idx + 1  # Google Sheets uses 1-based index
-        
+
         # If orders exist, overwrite them
         new_order_data = [tomorrow.strftime('%Y-%m-%d'), single_orders, double_orders, king_orders]
         if row_to_update:
@@ -115,9 +114,10 @@ def input_orders(tomorrow):
         else:
             orders_sheet.append_row(new_order_data)
             print(f"Orders for {tomorrow.strftime('%A, %B %d, %Y')} successfully recorded.")
-    
+
     except Exception as e:
         print(f"Error recording orders: {e}")
+
 
 def check_if_orders_exist(tomorrow):
     """
@@ -135,6 +135,7 @@ def check_if_orders_exist(tomorrow):
         print(f"Error checking orders: {e}")
         return False
 
+
 def get_orders_for_today(today):
     """
     Fetch today's orders from the Orders Sheet.
@@ -142,7 +143,7 @@ def get_orders_for_today(today):
     try:
         orders_sheet = SHEET.worksheet('Orders')
         orders_data = orders_sheet.get_all_values()
-        
+
         # Iterate through rows and find today's orders
         for row in orders_data:
             if row[0] == today.strftime('%Y-%m-%d'):
@@ -155,6 +156,7 @@ def get_orders_for_today(today):
     except Exception as e:
         print(f"Error fetching orders: {e}")
         return None
+
 
 def get_current_stock():
     """
@@ -174,6 +176,7 @@ def get_current_stock():
         print(f"Error fetching stock data: {e}")
         return 0, 0  # Return 0 if there's an error
 
+
 def request_raw_materials():
     """
     Order raw materials if stock is below 20%, otherwise notify the user.
@@ -190,19 +193,20 @@ def request_raw_materials():
     else:
         print("Raw materials stock is above 20%. No need to order.")
 
+
 def view_production_schedule(tomorrow):
     """
     Calculate and display the production requirements for tomorrow based on orders.
     """
     try:
         print(f"\nProduction Schedule for {tomorrow.strftime('%A, %B %d, %Y')}:")
-        
+
         # Fetch tomorrow's orders
         orders_tomorrow = get_orders_for_today(tomorrow)
         if not orders_tomorrow:
             print(f"No orders for tomorrow yet.")
             return
-        
+
         # Fetch material usage data
         material_usage_sheet = SHEET.worksheet('Material Usage')
         material_usage_data = material_usage_sheet.get_all_values()
@@ -237,6 +241,7 @@ def view_production_schedule(tomorrow):
     except Exception as e:
         print(f"Error calculating production requirements: {e}")
 
+
 def close_day(current_day):
     """
     Simulate closing the day and moving to the next day.
@@ -244,7 +249,7 @@ def close_day(current_day):
     After moving to the next day, show the updated overview.
     """
     tomorrow = current_day + datetime.timedelta(days=1)
-    
+
     print(f"\nClosing the day. Moving to {tomorrow.strftime('%A, %B %d, %Y')}.")
 
     # Deduct raw materials based on today's production
@@ -275,59 +280,8 @@ def close_day(current_day):
         updated_cotton_stock = max(0, cotton_stock - cotton_used)
         updated_fibre_stock = max(0, fibre_stock - fibre_used)
 
-        # Update stock in Google Sheets and mark the day as closed
-        new_stock_row = [tomorrow.strftime('%Y-%m-%d'), updated_cotton_stock, updated_fibre_stock, "Closed"]
-        stock_sheet = SHEET.worksheet('Material Stock')
-        stock_sheet.append_row(new_stock_row)
-
-        print(f"\nRaw materials deducted. Updated stock for {tomorrow.strftime('%A, %B %d, %Y')} recorded.")
-    else:
-        print("\nNo orders to produce today, stock remains unchanged.")
-
-    # Show the updated overview for the new day
-    show_overview()
-
-    return tomorrow
-def close_day(current_day):
-    """
-    Simulate closing the day and moving to the next day.
-    Deduct raw materials used for production from stock.
-    After moving to the next day, show the updated overview.
-    """
-    tomorrow = current_day + datetime.timedelta(days=1)
-    
-    print(f"\nClosing the day. Moving to {tomorrow.strftime('%A, %B %d, %Y')}.")
-
-    # Deduct raw materials based on today's production
-    orders_today = get_orders_for_today(current_day)
-    if orders_today:
-        # Fetch material usage data
-        material_usage_sheet = SHEET.worksheet('Material Usage')
-        material_usage_data = material_usage_sheet.get_all_values()
-
-        usage_single = {'cotton': float(material_usage_data[1][1]), 'fibre': float(material_usage_data[1][2])}
-        usage_double = {'cotton': float(material_usage_data[2][1]), 'fibre': float(material_usage_data[2][2])}
-        usage_king = {'cotton': float(material_usage_data[3][1]), 'fibre': float(material_usage_data[3][2])}
-
-        # Calculate materials used today
-        cotton_used = (
-            orders_today['single'] * usage_single['cotton'] +
-            orders_today['double'] * usage_double['cotton'] +
-            orders_today['king'] * usage_king['cotton']
-        )
-        fibre_used = (
-            orders_today['single'] * usage_single['fibre'] +
-            orders_today['double'] * usage_double['fibre'] +
-            orders_today['king'] * usage_king['fibre']
-        )
-
-        # Fetch current stock and update the sheet
-        cotton_stock, fibre_stock = get_current_stock()
-        updated_cotton_stock = max(0, cotton_stock - cotton_used)
-        updated_fibre_stock = max(0, fibre_stock - fibre_used)
-
-        # Update stock in Google Sheets and mark the day as closed
-        new_stock_row = [tomorrow.strftime('%Y-%m-%d'), updated_cotton_stock, updated_fibre_stock, "Closed"]
+        # Update stock in Google Sheets
+        new_stock_row = [tomorrow.strftime('%Y-%m-%d'), updated_cotton_stock, updated_fibre_stock]
         stock_sheet = SHEET.worksheet('Material Stock')
         stock_sheet.append_row(new_stock_row)
 
