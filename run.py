@@ -69,7 +69,7 @@ def main():
         elif choice == "2":
             view_production_schedule(tomorrow)  # View tomorrow's production requirements
         elif choice == "3" and raw_materials_ordered_for != tomorrow:
-            if request_raw_materials():  # If raw materials successfully ordered
+            if request_raw_materials(tomorrow):  # Pass 'tomorrow' as argument here
                 raw_materials_ordered_for = tomorrow  # Mark that order is placed for tomorrow
         elif choice == "4":
             if can_fulfill_tomorrows_orders(tomorrow):  # Check if stock is sufficient for tomorrow's orders
@@ -122,6 +122,7 @@ def can_fulfill_tomorrows_orders(tomorrow):
         print(f"Cotton needed: {round(cotton_needed, 2)} meters, Available: {cotton_stock} meters")
         print(f"Fibre needed: {round(fibre_needed, 2)} kg, Available: {fibre_stock} kg")
         return False
+
 
 def show_overview():
     """
@@ -238,24 +239,53 @@ def get_current_stock():
         return 0, 0  # Return 0 if there's an error
 
 
-def request_raw_materials():
+def request_raw_materials(tomorrow):
     """
-    Order raw materials if stock is below 20%, otherwise notify the user.
-    Returns True if materials were ordered, False if not.
+    Order raw materials based on tomorrow's production needs plus a 10% buffer.
     """
+    orders_tomorrow = get_orders_for_today(tomorrow)
+    if not orders_tomorrow:
+        print("No orders for tomorrow, raw materials request not needed.")
+        return False
+
     cotton_stock, fibre_stock = get_current_stock()
 
-    if cotton_stock < MAX_COTTON_STOCK * 0.2 or fibre_stock < MAX_FIBRE_STOCK * 0.2:
-        print("Ordering raw materials with 1-day lead time...")
-        # Update stock in Google Sheets (simplified for demonstration)
-        new_stock_row = [datetime.date.today().strftime('%Y-%m-%d'), MAX_COTTON_STOCK, MAX_FIBRE_STOCK]
-        stock_sheet = SHEET.worksheet('Material Stock')
-        stock_sheet.append_row(new_stock_row)
-        print("Raw materials will arrive tomorrow.")
-        return True  # Indicate materials have been ordered
-    else:
-        print("Raw materials stock is above 20%. No need to order.")
-        return False
+    # Fetch material usage data
+    material_usage_sheet = SHEET.worksheet('Material Usage')
+    material_usage_data = material_usage_sheet.get_all_values()
+
+    usage_single = {'cotton': float(material_usage_data[1][1]), 'fibre': float(material_usage_data[1][2])}
+    usage_double = {'cotton': float(material_usage_data[2][1]), 'fibre': float(material_usage_data[2][2])}
+    usage_king = {'cotton': float(material_usage_data[3][1]), 'fibre': float(material_usage_data[3][2])}
+
+    # Calculate materials needed for tomorrow's orders + 10% buffer
+    cotton_needed = (
+        orders_tomorrow['single'] * usage_single['cotton'] +
+        orders_tomorrow['double'] * usage_double['cotton'] +
+        orders_tomorrow['king'] * usage_king['cotton']
+    ) * 1.1
+    fibre_needed = (
+        orders_tomorrow['single'] * usage_single['fibre'] +
+        orders_tomorrow['double'] * usage_double['fibre'] +
+        orders_tomorrow['king'] * usage_king['fibre']
+    ) * 1.1
+
+    # Calculate how much to order to meet the production needs
+    cotton_to_order = max(0, cotton_needed - cotton_stock)
+    fibre_to_order = max(0, fibre_needed - fibre_stock)
+
+    # Order raw materials with 1-day lead time
+    print(f"\nOrdering raw materials to meet production for {tomorrow.strftime('%A, %B %d, %Y')}:")
+    print(f"Cotton to Order: {round(cotton_to_order, 2)} meters")
+    print(f"Fibre to Order: {round(fibre_to_order, 2)} kg")
+
+    # Update stock in Google Sheets (simplified for demonstration)
+    new_stock_row = [tomorrow.strftime('%Y-%m-%d'), cotton_stock + cotton_to_order, fibre_stock + fibre_to_order]
+    stock_sheet = SHEET.worksheet('Material Stock')
+    stock_sheet.append_row(new_stock_row)
+
+    print(f"Raw materials will arrive tomorrow.")
+    return True  # Indicate materials have been ordered
 
 
 def view_production_schedule(tomorrow):
@@ -360,3 +390,4 @@ def close_day(current_day):
 
 
 main()
+
