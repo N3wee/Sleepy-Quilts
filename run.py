@@ -19,12 +19,15 @@ SHEET = GSPREAD_CLIENT.open('SleepyQuilts')
 def main():
     """
     Main function to handle user navigation and display overview.
-    Displays a welcome message, today's date, and navigation options.
+    Displays a welcome message, today's date, orders to produce today, and current stock.
     """
     today = datetime.date.today()
     print(f"Welcome to Sleepy Quilts Production System - {today.strftime('%A, %B %d, %Y')}")
-    
-    # Show basic overview and navigation
+
+    # Show overview
+    show_overview(today)
+
+    # Show basic navigation and options
     while True:
         print("\nWhat would you like to do?")
         print("1. Input Orders for Tomorrow")
@@ -42,6 +45,44 @@ def main():
             break
         else:
             print("Invalid choice, please try again.")
+
+def show_overview(today):
+    """
+    Display today's orders and current stock overview.
+    """
+    print(f"\nOverview for {today.strftime('%A, %B %d, %Y')} (Today)")
+    
+    # Fetch today's orders
+    orders_today = get_orders_for_today(today)
+    if orders_today:
+        print(f"\nOrders to Produce Today:")
+        print(f"Single Duvets: {orders_today['single']}")
+        print(f"Double Duvets: {orders_today['double']}")
+        print(f"King Duvets: {orders_today['king']}")
+    else:
+        print("\nNo orders to produce today.")
+    
+    # Fetch current stock levels
+    cotton_stock, fibre_stock = get_current_stock()
+    print(f"\nCurrent Stock Levels:")
+    print(f"Cotton: {cotton_stock} meters")
+    print(f"Fibre: {fibre_stock} kg")
+
+def get_orders_for_today(today):
+    """
+    Fetch today's orders from the Orders Sheet (Placeholder function).
+    """
+    # Placeholder logic to simulate fetching orders from the Orders sheet
+    # Replace this with the actual Google Sheets fetching logic later
+    return {'single': 50, 'double': 30, 'king': 20}  # Dummy data
+
+def get_current_stock():
+    """
+    Fetch current stock levels from the Material Stock Sheet (Placeholder function).
+    """
+    # Placeholder logic to simulate fetching stock from the Material Stock sheet
+    # Replace this with the actual Google Sheets fetching logic later
+    return 1000, 500  # Dummy data (1000 meters of cotton, 500 kg of fibre)
 
 def input_orders():
     """
