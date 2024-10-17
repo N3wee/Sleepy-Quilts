@@ -30,18 +30,35 @@ def main():
     # Show overview
     show_overview()
 
+    raw_materials_ordered_for = None  # Track if raw materials have been ordered and for which date
+
     while True:
         tomorrow = today + datetime.timedelta(days=1)
+        
+        # Fetch current stock levels and calculate stock percentage
+        cotton_stock, fibre_stock = get_current_stock()
+        cotton_percentage = (cotton_stock / MAX_COTTON_STOCK) * 100
+        fibre_percentage = (fibre_stock / MAX_FIBRE_STOCK) * 100
+
+        # Determine stock status
+        if cotton_stock < MAX_COTTON_STOCK * 0.2 or fibre_stock < MAX_FIBRE_STOCK * 0.2:
+            stock_status = f"(Low stock - Cotton: {round(cotton_percentage, 2)}%, Fibre: {round(fibre_percentage, 2)}%)"
+        else:
+            stock_status = f"(Adequate Stock - Cotton: {round(cotton_percentage, 2)}%, Fibre: {round(fibre_percentage, 2)}%)"
 
         # Navigation options
         if check_if_orders_exist(tomorrow):
-            print("\n1. Received tomorrow’s orders. Would you like to rewrite them?")
+            print("\nWhat would you like to do?")
+            print("1. Received tomorrow’s orders. Would you like to rewrite them?")
         else:
             print("\nWhat would you like to do?")
             print("1. Input Orders for Tomorrow")
-
+        
         print("2. View Production Requirements for Tomorrow")
-        print("3. Order raw materials")
+        if raw_materials_ordered_for == tomorrow:
+            print(f"3. Order Placed for {tomorrow.strftime('%A, %B %d, %Y')}")
+        else:
+            print(f"3. Order raw materials {stock_status}")
         print("4. Close the day and move to next day")
         print("5. Exit")
 
@@ -51,16 +68,60 @@ def main():
             input_orders(tomorrow)  # Input or rewrite orders for tomorrow
         elif choice == "2":
             view_production_schedule(tomorrow)  # View tomorrow's production requirements
-        elif choice == "3":
-            request_raw_materials()  # Order raw materials
+        elif choice == "3" and raw_materials_ordered_for != tomorrow:
+            if request_raw_materials():  # If raw materials successfully ordered
+                raw_materials_ordered_for = tomorrow  # Mark that order is placed for tomorrow
         elif choice == "4":
-            today = close_day(today)  # Close the day and move to next day
+            if can_fulfill_tomorrows_orders(tomorrow):  # Check if stock is sufficient for tomorrow's orders
+                today = close_day(today)  # Close the day and move to next day
+            else:
+                print("Insufficient raw materials to fulfill tomorrow's orders. Please order raw materials first.")
         elif choice == "5":
             print("Exiting the system. Goodbye!")
             break
         else:
             print("Invalid choice, please try again.")
 
+
+def can_fulfill_tomorrows_orders(tomorrow):
+    """
+    Check if there is enough stock to fulfill tomorrow's orders.
+    If there isn't enough stock, return False and inform the user.
+    """
+    orders_tomorrow = get_orders_for_today(tomorrow)
+    if not orders_tomorrow:
+        return True  # No orders, so stock isn't an issue
+    
+    cotton_stock, fibre_stock = get_current_stock()
+
+    # Fetch material usage data
+    material_usage_sheet = SHEET.worksheet('Material Usage')
+    material_usage_data = material_usage_sheet.get_all_values()
+
+    usage_single = {'cotton': float(material_usage_data[1][1]), 'fibre': float(material_usage_data[1][2])}
+    usage_double = {'cotton': float(material_usage_data[2][1]), 'fibre': float(material_usage_data[2][2])}
+    usage_king = {'cotton': float(material_usage_data[3][1]), 'fibre': float(material_usage_data[3][2])}
+
+    # Calculate materials required for tomorrow's orders
+    cotton_needed = (
+        orders_tomorrow['single'] * usage_single['cotton'] +
+        orders_tomorrow['double'] * usage_double['cotton'] +
+        orders_tomorrow['king'] * usage_king['cotton']
+    )
+    fibre_needed = (
+        orders_tomorrow['single'] * usage_single['fibre'] +
+        orders_tomorrow['double'] * usage_double['fibre'] +
+        orders_tomorrow['king'] * usage_king['fibre']
+    )
+
+    # Check if there's enough stock to fulfill tomorrow's orders
+    if cotton_stock >= cotton_needed and fibre_stock >= fibre_needed:
+        return True
+    else:
+        print(f"\nInsufficient stock to fulfill tomorrow's orders.")
+        print(f"Cotton needed: {round(cotton_needed, 2)} meters, Available: {cotton_stock} meters")
+        print(f"Fibre needed: {round(fibre_needed, 2)} kg, Available: {fibre_stock} kg")
+        return False
 
 def show_overview():
     """
@@ -180,6 +241,7 @@ def get_current_stock():
 def request_raw_materials():
     """
     Order raw materials if stock is below 20%, otherwise notify the user.
+    Returns True if materials were ordered, False if not.
     """
     cotton_stock, fibre_stock = get_current_stock()
 
@@ -190,8 +252,10 @@ def request_raw_materials():
         stock_sheet = SHEET.worksheet('Material Stock')
         stock_sheet.append_row(new_stock_row)
         print("Raw materials will arrive tomorrow.")
+        return True  # Indicate materials have been ordered
     else:
         print("Raw materials stock is above 20%. No need to order.")
+        return False
 
 
 def view_production_schedule(tomorrow):
