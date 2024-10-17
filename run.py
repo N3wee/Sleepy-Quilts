@@ -241,6 +241,7 @@ def close_day(current_day):
     """
     Simulate closing the day and moving to the next day.
     Deduct raw materials used for production from stock.
+    After moving to the next day, show the updated overview.
     """
     tomorrow = current_day + datetime.timedelta(days=1)
     
@@ -283,6 +284,61 @@ def close_day(current_day):
     else:
         print("\nNo orders to produce today, stock remains unchanged.")
 
+    # Show the updated overview for the new day
+    show_overview()
+
     return tomorrow
+def close_day(current_day):
+    """
+    Simulate closing the day and moving to the next day.
+    Deduct raw materials used for production from stock.
+    After moving to the next day, show the updated overview.
+    """
+    tomorrow = current_day + datetime.timedelta(days=1)
+    
+    print(f"\nClosing the day. Moving to {tomorrow.strftime('%A, %B %d, %Y')}.")
+
+    # Deduct raw materials based on today's production
+    orders_today = get_orders_for_today(current_day)
+    if orders_today:
+        # Fetch material usage data
+        material_usage_sheet = SHEET.worksheet('Material Usage')
+        material_usage_data = material_usage_sheet.get_all_values()
+
+        usage_single = {'cotton': float(material_usage_data[1][1]), 'fibre': float(material_usage_data[1][2])}
+        usage_double = {'cotton': float(material_usage_data[2][1]), 'fibre': float(material_usage_data[2][2])}
+        usage_king = {'cotton': float(material_usage_data[3][1]), 'fibre': float(material_usage_data[3][2])}
+
+        # Calculate materials used today
+        cotton_used = (
+            orders_today['single'] * usage_single['cotton'] +
+            orders_today['double'] * usage_double['cotton'] +
+            orders_today['king'] * usage_king['cotton']
+        )
+        fibre_used = (
+            orders_today['single'] * usage_single['fibre'] +
+            orders_today['double'] * usage_double['fibre'] +
+            orders_today['king'] * usage_king['fibre']
+        )
+
+        # Fetch current stock and update the sheet
+        cotton_stock, fibre_stock = get_current_stock()
+        updated_cotton_stock = max(0, cotton_stock - cotton_used)
+        updated_fibre_stock = max(0, fibre_stock - fibre_used)
+
+        # Update stock in Google Sheets and mark the day as closed
+        new_stock_row = [tomorrow.strftime('%Y-%m-%d'), updated_cotton_stock, updated_fibre_stock, "Closed"]
+        stock_sheet = SHEET.worksheet('Material Stock')
+        stock_sheet.append_row(new_stock_row)
+
+        print(f"\nRaw materials deducted. Updated stock for {tomorrow.strftime('%A, %B %d, %Y')} recorded.")
+    else:
+        print("\nNo orders to produce today, stock remains unchanged.")
+
+    # Show the updated overview for the new day
+    show_overview()
+
+    return tomorrow
+
 
 main()
