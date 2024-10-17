@@ -30,19 +30,24 @@ def main():
     print(f"\nDate: {today.strftime('%A, %B %d, %Y')}")
 
     # Show overview
-    show_overview(today)
+    show_overview()
 
-    # Show basic navigation and options
     while True:
-        print("\nWhat would you like to do?")
-        print("1. Input Orders for Tomorrow")
+        tomorrow = today + datetime.timedelta(days=1)
+        if check_if_orders_exist(tomorrow):
+            print("\nWhat would you like to do?")
+            print("1. Rewrite orders for tomorrow")
+        else:
+            print("\nWhat would you like to do?")
+            print("1. Input Orders for Tomorrow")
+        
         print("2. View Production Requirements for Tomorrow")
         print("3. Exit")
 
         choice = input("Enter your choice: ")
-        
+
         if choice == "1":
-            input_orders()  # Placeholder for input orders
+            input_orders(tomorrow)  # Pass tomorrow's date
         elif choice == "2":
             view_production_schedule()  # Placeholder for viewing production schedule
         elif choice == "3":
@@ -51,13 +56,14 @@ def main():
         else:
             print("Invalid choice, please try again.")
 
-def show_overview(today):
+def show_overview():
     """
     Display today's orders and current stock overview.
     """
-    print(f"\nOverview for {today.strftime('%A, %B %d, %Y')} (Today)")
-    
+    print(f"\nOverview:")
+
     # Fetch today's orders
+    today = datetime.date.today()
     orders_today = get_orders_for_today(today)
     if orders_today:
         print(f"\nOrders to Produce Today:")
@@ -72,6 +78,55 @@ def show_overview(today):
     print(f"\nCurrent Stock Levels:")
     print(f"Cotton: {cotton_stock} / {MAX_COTTON_STOCK} meters")
     print(f"Fibre: {fibre_stock} / {MAX_FIBRE_STOCK} kg")
+
+def input_orders(tomorrow):
+    """
+    Input or rewrite sales orders for tomorrow's production.
+    """
+    try:
+        print(f"\nPlease enter orders for {tomorrow.strftime('%A, %B %d, %Y')}:")
+        
+        # Get orders from the user
+        single_orders = int(input("Enter the number of Single duvets ordered: "))
+        double_orders = int(input("Enter the number of Double duvets ordered: "))
+        king_orders = int(input("Enter the number of King duvets ordered: "))
+
+        # Check if orders already exist for tomorrow
+        orders_sheet = SHEET.worksheet('Orders')
+        orders_data = orders_sheet.get_all_values()
+        row_to_update = None
+
+        for idx, row in enumerate(orders_data):
+            if row[0] == tomorrow.strftime('%Y-%m-%d'):
+                row_to_update = idx + 1  # Google Sheets uses 1-based index
+        
+        # If orders exist, overwrite them
+        new_order_data = [tomorrow.strftime('%Y-%m-%d'), single_orders, double_orders, king_orders]
+        if row_to_update:
+            orders_sheet.update(f'A{row_to_update}:D{row_to_update}', [new_order_data])
+            print(f"Orders for {tomorrow.strftime('%A, %B %d, %Y')} successfully overwritten.")
+        else:
+            orders_sheet.append_row(new_order_data)
+            print(f"Orders for {tomorrow.strftime('%A, %B %d, %Y')} successfully recorded.")
+    
+    except Exception as e:
+        print(f"Error recording orders: {e}")
+
+def check_if_orders_exist(tomorrow):
+    """
+    Check if orders have already been entered for tomorrow.
+    """
+    try:
+        orders_sheet = SHEET.worksheet('Orders')
+        orders_data = orders_sheet.get_all_values()
+
+        for row in orders_data:
+            if row[0] == tomorrow.strftime('%Y-%m-%d'):
+                return True
+        return False
+    except Exception as e:
+        print(f"Error checking orders: {e}")
+        return False
 
 def get_orders_for_today(today):
     """
@@ -112,16 +167,11 @@ def get_current_stock():
         print(f"Error fetching stock data: {e}")
         return 0, 0  # Return 0 if there's an error
 
-def input_orders():
-    """
-    Placeholder function for inputting orders.
-    """
-    print("Inputting orders... (functionality to be implemented)")
-
 def view_production_schedule():
     """
     Placeholder function for viewing production schedule.
     """
     print("Viewing production schedule... (functionality to be implemented)")
+
 
 main()
