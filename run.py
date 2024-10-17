@@ -32,6 +32,9 @@ def main():
     # Show overview
     show_overview()
 
+    # Fetch current stock to check if it's below 20%
+    cotton_stock, fibre_stock = get_current_stock()
+
     while True:
         tomorrow = today + datetime.timedelta(days=1)
         if check_if_orders_exist(tomorrow):
@@ -42,19 +45,32 @@ def main():
             print("1. Input Orders for Tomorrow")
         
         print("2. View Production Requirements for Tomorrow")
-        print("3. Exit")
 
+        # Allow raw materials order on Fridays or if stock falls below 20%
+        if today.strftime('%A') == "Friday" or cotton_stock < (MAX_COTTON_STOCK * 0.2) or fibre_stock < (MAX_FIBRE_STOCK * 0.2):
+            print("3. Order raw materials (Fridays or -20% stock)")
+
+        print("4. Close the day and move to next day")
+        print("5. Exit")
+
+        # Capture the user input
         choice = input("Enter your choice: ")
 
+        # Handle input choices with proper validation
         if choice == "1":
             input_orders(tomorrow)  # Pass tomorrow's date
         elif choice == "2":
-            view_production_schedule()  # Placeholder for viewing production schedule
-        elif choice == "3":
+            view_production_schedule()  # Calculate production requirements
+        elif choice == "3" and (today.strftime('%A') == "Friday" or cotton_stock < (MAX_COTTON_STOCK * 0.2) or fibre_stock < (MAX_FIBRE_STOCK * 0.2)):
+            request_raw_materials()
+        elif choice == "4":
+            today = close_day(today)
+        elif choice == "5":
             print("Exiting the system. Goodbye!")
             break
         else:
             print("Invalid choice, please try again.")
+
 
 def show_overview():
     """
@@ -103,7 +119,7 @@ def input_orders(tomorrow):
         # If orders exist, overwrite them
         new_order_data = [tomorrow.strftime('%Y-%m-%d'), single_orders, double_orders, king_orders]
         if row_to_update:
-            orders_sheet.update(f'A{row_to_update}:D{row_to_update}', [new_order_data])
+            orders_sheet.update(range_name=f'A{row_to_update}:D{row_to_update}', values=[new_order_data])
             print(f"Orders for {tomorrow.strftime('%A, %B %d, %Y')} successfully overwritten.")
         else:
             orders_sheet.append_row(new_order_data)
@@ -111,6 +127,7 @@ def input_orders(tomorrow):
     
     except Exception as e:
         print(f"Error recording orders: {e}")
+
 
 def check_if_orders_exist(tomorrow):
     """
@@ -215,6 +232,59 @@ def view_production_schedule():
 
     except Exception as e:
         print(f"Error calculating production requirements: {e}")
+
+def close_day(current_day):
+    """
+    Simulate closing the day and moving to the next day.
+    Deduct raw materials used for production from stock.
+    """
+    tomorrow = current_day + datetime.timedelta(days=1)
+    print(f"\nClosing the day. Moving to {tomorrow.strftime('%A, %B %d, %Y')}.")
+
+    # Deduct raw materials based on today's production
+    orders_today = get_orders_for_today(current_day)
+    if orders_today:
+        # Fetch material usage data
+        material_usage_sheet = SHEET.worksheet('Material Usage')
+        material_usage_data = material_usage_sheet.get_all_values()
+
+        usage_single = {'cotton': float(material_usage_data[1][1]), 'fibre': float(material_usage_data[1][2])}
+        usage_double = {'cotton': float(material_usage_data[2][1]), 'fibre': float(material_usage_data[2][2])}
+        usage_king = {'cotton': float(material_usage_data[3][1]), 'fibre': float(material_usage_data[3][2])}
+
+        # Calculate materials used today
+        cotton_used = (
+            orders_today['single'] * usage_single['cotton'] +
+            orders_today['double'] * usage_double['cotton'] +
+            orders_today['king'] * usage_king['cotton']
+        )
+        fibre_used = (
+            orders_today['single'] * usage_single['fibre'] +
+            orders_today['double'] * usage_double['fibre'] +
+            orders_today['king'] * usage_king['fibre']
+        )
+
+        # Fetch current stock and update the sheet
+        cotton_stock, fibre_stock = get_current_stock()
+        updated_cotton_stock = max(0, cotton_stock - cotton_used)
+        updated_fibre_stock = max(0, fibre_stock - fibre_used)
+
+        # Update stock in Google Sheets
+        stock_sheet = SHEET.worksheet('Material Stock')
+        new_stock_row = [tomorrow.strftime('%Y-%m-%d'), updated_cotton_stock, updated_fibre_stock]
+        stock_sheet.append_row(new_stock_row)
+
+        print(f"\nRaw materials deducted. Updated stock for {tomorrow.strftime('%A, %B %d, %Y')} recorded.")
+    else:
+        print("\nNo orders to produce today, stock remains unchanged.")
+
+    return tomorrow
+
+def request_raw_materials():
+    """
+    Placeholder function for requesting raw materials.
+    """
+    print("Ordering raw materials with 1-day lead time...")
 
 
 main()
