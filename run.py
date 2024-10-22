@@ -23,13 +23,43 @@ def display_menu():
     print("4. Delete a quilt")
     print("5. Exit")
 
+def add_quilt():
+    print("Add a new quilt")
+
+    # Collect quilt information from user
+    quilt_name = input("Enter quilt name: ")
+    quilt_material = input("Enter quilt material: ")
+    quilt_fill = input("Enter quilt fill (e.g., down, synthetic, etc.): ")
+    quilt_tog = input("Enter quilt tog rating: ")
+    quilt_size = input("Enter quilt size: ")
+    quilt_price = input("Enter quilt price: ")
+    quilt_quantity = input("Enter quilt quantity: ")
+
+    # Prepare the row to insert into Google Sheets
+    quilt_data = [quilt_name, quilt_material, quilt_fill, quilt_tog, quilt_size, quilt_price, quilt_quantity]
+
+    try:
+        # Try to access the 'quilts' worksheet
+        sheet = SHEET.worksheet('quilts')
+    except gspread.exceptions.WorksheetNotFound:
+        # If worksheet doesn't exist, create it and set headers
+        sheet = SHEET.add_worksheet(title='quilts', rows=100, cols=7)
+        sheet.append_row(["Name", "Material", "Fill", "Tog", "Size", "Price", "Quantity"])  # Add headers
+
+    # Append the new quilt data
+    sheet.append_row(quilt_data)
+
+    print(f"Quilt '{quilt_name}' added successfully!")
+
+
+# Existing main structure
 def main():
     while True:
         display_menu()
         choice = input("Enter your choice (1-5): ")
 
         if choice == '1':
-            add_quilt()
+            add_quilt()  # Now connected to the actual Google Sheets function
         elif choice == '2':
             view_quilts()
         elif choice == '3':
