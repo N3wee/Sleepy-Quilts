@@ -23,17 +23,56 @@ def display_menu():
     print("4. Delete a quilt")
     print("5. Exit")
 
+# Helper function for material validation
+def get_valid_material():
+    valid_materials = ['cotton', 'polycotton', 'polyester', 'silk']
+    while True:
+        material = input("Enter quilt material (cotton, polycotton, polyester, silk): ").lower()
+        if material in valid_materials:
+            return material
+        else:
+            print("Invalid material. Please enter a valid option.")
+
+# Helper function for fill validation
+def get_valid_fill():
+    valid_fills = ['fibre', 'feather', 'down']
+    while True:
+        fill = input("Enter quilt fill (fibre, feather, down): ").lower()
+        if fill in valid_fills:
+            return fill
+        else:
+            print("Invalid fill. Please enter a valid option.")
+
+# Helper function for size validation
+def get_valid_size():
+    valid_sizes = ['single', 'double', 'king', 'superking']
+    while True:
+        size = input("Enter quilt size (single, double, king, superking): ").lower()
+        if size in valid_sizes:
+            return size
+        else:
+            print("Invalid size. Please enter a valid option.")
+
+# Helper function for valid number input
+def get_valid_number(prompt):
+    while True:
+        try:
+            value = float(input(prompt))  # Accept float to cover decimal numbers if needed
+            return value
+        except ValueError:
+            print("Please enter a valid number.")
+
 def add_quilt():
     print("Add a new quilt")
 
     # Collect quilt information from user
     quilt_name = input("Enter quilt name: ")
-    quilt_material = input("Enter quilt material: ")
-    quilt_fill = input("Enter quilt fill (e.g., down, synthetic, etc.): ")
-    quilt_tog = input("Enter quilt tog rating: ")
-    quilt_size = input("Enter quilt size: ")
-    quilt_price = input("Enter quilt price: ")
-    quilt_quantity = input("Enter quilt quantity: ")
+    quilt_material = get_valid_material()
+    quilt_fill = get_valid_fill()
+    quilt_tog = get_valid_number("Enter quilt tog rating (as a number): ")  # Ensure tog is a valid number
+    quilt_size = get_valid_size()
+    quilt_price = get_valid_number("Enter quilt price in GBP: ")  # Ensure price is a number
+    quilt_quantity = get_valid_number("Enter quilt quantity: ")  # Ensure quantity is a number
 
     # Prepare the row to insert into Google Sheets
     quilt_data = [quilt_name, quilt_material, quilt_fill, quilt_tog, quilt_size, quilt_price, quilt_quantity]
@@ -50,6 +89,7 @@ def add_quilt():
     sheet.append_row(quilt_data)
 
     print(f"Quilt '{quilt_name}' added successfully!")
+
 
 def view_quilts():
     print("View all quilts")
@@ -75,27 +115,48 @@ def update_quilt():
     print("Update quilt stock")
 
     try:
-        # Try to access the 'quilts' worksheet
         sheet = SHEET.worksheet('quilts')
         quilts = sheet.get_all_values()
 
-        # Check if there is any quilt data
         if len(quilts) > 1:
-            # Display all quilts for the user to choose which one to update
             print("\nQuilt Inventory:")
-            for index, row in enumerate(quilts[1:], start=1):  # Skip the header row
+            for index, row in enumerate(quilts[1:], start=1):
                 print(f"{index}. Name: {row[0]}, Quantity: {row[6]}")
             
-            # Prompt user to select a quilt by its number
-            quilt_num = int(input("\nEnter the number of the quilt you want to update: "))
+            quilt_num = get_valid_number("\nEnter the number of the quilt you want to update: ")
+
             if 1 <= quilt_num <= len(quilts) - 1:
-                # Get the current quilt details
                 selected_quilt = quilts[quilt_num]
                 print(f"Selected Quilt: {selected_quilt[0]}")
-                new_quantity = input(f"Enter the new quantity for '{selected_quilt[0]}': ")
+                new_quantity = get_valid_number(f"Enter the new quantity for '{selected_quilt[0]}': ")
+                sheet.update_cell(quilt_num + 1, 7, new_quantity)
+                print(f"Updated '{selected_quilt[0]}' stock to {new_quantity}.")
+            else:
+                print("Invalid quilt number.")
+        else:
+            print("No quilts found in inventory.")
+    except gspread.exceptions.WorksheetNotFound:
+        print("Worksheet 'quilts' not found.")
+        
+def update_quilt():
+    print("Update quilt stock")
 
-                # Update the quantity in the sheet
-                sheet.update_cell(quilt_num + 1, 7, new_quantity)  # quilt_num + 1 to account for header row
+    try:
+        sheet = SHEET.worksheet('quilts')
+        quilts = sheet.get_all_values()
+
+        if len(quilts) > 1:
+            print("\nQuilt Inventory:")
+            for index, row in enumerate(quilts[1:], start=1):
+                print(f"{index}. Name: {row[0]}, Quantity: {row[6]}")
+            
+            quilt_num = get_valid_number("\nEnter the number of the quilt you want to update: ")
+
+            if 1 <= quilt_num <= len(quilts) - 1:
+                selected_quilt = quilts[quilt_num]
+                print(f"Selected Quilt: {selected_quilt[0]}")
+                new_quantity = get_valid_number(f"Enter the new quantity for '{selected_quilt[0]}': ")
+                sheet.update_cell(quilt_num + 1, 7, new_quantity)
                 print(f"Updated '{selected_quilt[0]}' stock to {new_quantity}.")
             else:
                 print("Invalid quilt number.")
@@ -142,7 +203,21 @@ def delete_quilt():
     except gspread.exceptions.WorksheetNotFound:
         print("Worksheet 'quilts' not found.")
 
+def get_valid_input(prompt, valid_options=None):
+    while True:
+        user_input = input(prompt)
+        if valid_options and user_input not in valid_options:
+            print("Invalid input. Please try again.")
+        else:
+            return user_input
 
+def get_valid_number(prompt):
+    while True:
+        try:
+            value = int(input(prompt))
+            return value
+        except ValueError:
+            print("Please enter a valid number.")
 
 def main():
     while True:
