@@ -105,6 +105,44 @@ def update_quilt():
         print("Worksheet 'quilts' not found.")
 
 
+def delete_quilt():
+    print("Delete a quilt")
+
+    try:
+        # Try to access the 'quilts' worksheet
+        sheet = SHEET.worksheet('quilts')
+        quilts = sheet.get_all_values()
+
+        # Check if there is any quilt data
+        if len(quilts) > 1:
+            # Display all quilts for the user to choose which one to delete
+            print("\nQuilt Inventory:")
+            for index, row in enumerate(quilts[1:], start=1):  # Skip the header row
+                print(f"{index}. Name: {row[0]}")
+            
+            # Prompt user to select a quilt by its number
+            quilt_num = int(input("\nEnter the number of the quilt you want to delete: "))
+            if 1 <= quilt_num <= len(quilts) - 1:
+                # Get the current quilt details
+                selected_quilt = quilts[quilt_num]
+                print(f"Selected Quilt: {selected_quilt[0]}")
+
+                # Confirm deletion
+                confirm = input(f"Are you sure you want to delete '{selected_quilt[0]}'? (y/n): ")
+                if confirm.lower() == 'y':
+                    # Delete the row (quilt_num + 1 to account for header row)
+                    sheet.delete_rows(quilt_num + 1)
+                    print(f"Deleted '{selected_quilt[0]}' successfully.")
+                else:
+                    print("Delete operation canceled.")
+            else:
+                print("Invalid quilt number.")
+        else:
+            print("No quilts found in inventory.")
+    except gspread.exceptions.WorksheetNotFound:
+        print("Worksheet 'quilts' not found.")
+
+
 
 def main():
     while True:
