@@ -51,6 +51,27 @@ def add_quilt():
 
     print(f"Quilt '{quilt_name}' added successfully!")
 
+def view_quilts():
+    print("View all quilts")
+
+    try:
+        # Try to access the 'quilts' worksheet
+        sheet = SHEET.worksheet('quilts')
+        quilts = sheet.get_all_values()
+
+        # Check if there is data beyond the headers
+        if len(quilts) > 1:
+            print("\nQuilt Inventory:")
+            for row in quilts[1:]:  # Skip the header row
+                print(f"Name: {row[0]}, Material: {row[1]}, Fill: {row[2]}, Tog: {row[3]}, "
+                      f"Size: {row[4]}, Price: {row[5]}, Quantity: {row[6]}")
+        else:
+            print("No quilts found in inventory.")
+    except gspread.exceptions.WorksheetNotFound:
+        print("Worksheet 'quilts' not found.")
+
+
+
 
 # Existing main structure
 def main():
