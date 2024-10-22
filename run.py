@@ -29,20 +29,21 @@ def main():
         choice = input("Enter your choice (1-5): ")
 
         if choice == '1':
-            print("You chose to add a new quilt.")
+            add_quilt()
         elif choice == '2':
-            print("You chose to view all quilts.")
+            view_quilts()
         elif choice == '3':
-            print("You chose to update quilt stock.")
+            update_quilt()
         elif choice == '4':
-            print("You chose to delete a quilt.")
+            delete_quilt()
         elif choice == '5':
             print("Exiting the program.")
             break
         else:
             print("Invalid choice, please try again.")
 
-    main()
+
+main()
 
 
 
