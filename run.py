@@ -71,9 +71,41 @@ def view_quilts():
         print("Worksheet 'quilts' not found.")
 
 
+def update_quilt():
+    print("Update quilt stock")
+
+    try:
+        # Try to access the 'quilts' worksheet
+        sheet = SHEET.worksheet('quilts')
+        quilts = sheet.get_all_values()
+
+        # Check if there is any quilt data
+        if len(quilts) > 1:
+            # Display all quilts for the user to choose which one to update
+            print("\nQuilt Inventory:")
+            for index, row in enumerate(quilts[1:], start=1):  # Skip the header row
+                print(f"{index}. Name: {row[0]}, Quantity: {row[6]}")
+            
+            # Prompt user to select a quilt by its number
+            quilt_num = int(input("\nEnter the number of the quilt you want to update: "))
+            if 1 <= quilt_num <= len(quilts) - 1:
+                # Get the current quilt details
+                selected_quilt = quilts[quilt_num]
+                print(f"Selected Quilt: {selected_quilt[0]}")
+                new_quantity = input(f"Enter the new quantity for '{selected_quilt[0]}': ")
+
+                # Update the quantity in the sheet
+                sheet.update_cell(quilt_num + 1, 7, new_quantity)  # quilt_num + 1 to account for header row
+                print(f"Updated '{selected_quilt[0]}' stock to {new_quantity}.")
+            else:
+                print("Invalid quilt number.")
+        else:
+            print("No quilts found in inventory.")
+    except gspread.exceptions.WorksheetNotFound:
+        print("Worksheet 'quilts' not found.")
 
 
-# Existing main structure
+
 def main():
     while True:
         display_menu()
