@@ -45,7 +45,7 @@ def get_valid_material():
     valid_materials = ["cotton", "polycotton", "polyester", "silk"]
     while True:
         material = input(
-            "Enter quilt material (cotton, polycotton, polyester, silk): "
+            "Enter quilt material (cotton, polycotton, polyester, silk): \n"
         ).lower()
         if material in valid_materials:
             return material
@@ -62,7 +62,7 @@ def get_valid_fill():
     """
     valid_fills = ["fibre", "feather", "down"]
     while True:
-        fill = input("Enter quilt fill (fibre, feather, down): ").lower()
+        fill = input("Enter quilt fill (fibre, feather, down): \n").lower()
         if fill in valid_fills:
             return fill
         else:
@@ -79,7 +79,7 @@ def get_valid_size():
     valid_sizes = ["single", "double", "king", "superking"]
     while True:
         size = input(
-         "Enter quilt size (single, double, king, superking): "
+         "Enter quilt size (single, double, king, superking): \n"
          ).lower()
         if size in valid_sizes:
             return size
@@ -112,13 +112,13 @@ def add_quilt():
     print("Add a New Quilt")
     print_divider()
 
-    quilt_name = input("Enter quilt name: ")
+    quilt_name = input("Enter quilt name: \n")
     quilt_material = get_valid_material()
     quilt_fill = get_valid_fill()
-    quilt_tog = get_valid_number("Enter quilt tog rating (as a number): ")
+    quilt_tog = get_valid_number("Enter quilt tog rating (as a number): \n")
     quilt_size = get_valid_size()
-    quilt_price = get_valid_number("Enter quilt price in GBP: ")
-    quilt_quantity = get_valid_number("Enter quilt quantity: ")
+    quilt_price = get_valid_number("Enter quilt price in GBP: \n")
+    quilt_quantity = get_valid_number("Enter quilt quantity: \n")
 
     quilt_data = [
         quilt_name,
@@ -236,7 +236,8 @@ def delete_quilt():
                 print(f"{index}. Name: {row[0]}")
 
             quilt_num = int(
-                input("\nEnter the number of the quilt you want to delete: ")
+                input(
+                    "\nEnter the number of the quilt you want to delete: \n")
             )
             if 1 <= quilt_num <= len(quilts) - 1:
                 selected_quilt = quilts[quilt_num]
@@ -244,7 +245,7 @@ def delete_quilt():
 
                 confirm = input(
                     f"Are you sure you want to delete "
-                    f"'{selected_quilt[0]}'? (y/n): "
+                    f"'{selected_quilt[0]}'? (y/n): \n"
                 )
                 if confirm.lower() == "y":
                     sheet.delete_rows(quilt_num + 1)
@@ -267,7 +268,7 @@ def main():
     """
     while True:
         display_menu()
-        choice = input("Enter your choice (1-5): ")
+        choice = input("Enter your choice (1-5): \n")
 
         if choice == "1":
             add_quilt()
