@@ -1,6 +1,7 @@
 import gspread
 from google.oauth2.service_account import Credentials
 import datetime
+from tabulate import tabulate
 
 SCOPE = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -156,19 +157,10 @@ def view_quilts():
         quilts = sheet.get_all_values()
 
         if len(quilts) > 1:
-            print(
-                "\n{:<20} {:<10} {:<10} {:<6} {:<10} {:<7} {:<8}".format(
-                    "Name", "Material", "Fill", "Tog",
-                    "Size", "Price", "Quantity"
-                )
-            )
-            print_divider()
-            for row in quilts[1:]:  # Skip the header row
-                print(
-                    "{:<20} {:<10} {:<10} {:<6} {:<10} {:<7} {:<8}".format(
-                        row[0], row[1], row[2], row[3], row[4], row[5], row[6]
-                    )
-                )
+            headers = ["Name", "Material", "Fill", 
+            "Tog", "Size", "Price", "Quantity"]
+            table = quilts[1:]  # Skip the header row from Google Sheets
+            print(tabulate(table, headers, tablefmt="grid"))
         else:
             print("\nNo quilts found in inventory.")
     except gspread.exceptions.WorksheetNotFound:
