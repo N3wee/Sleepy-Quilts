@@ -146,7 +146,7 @@ def add_quilt():
 
 def view_quilts():
     """
-    Retrieves and displays all quilt entries from the Google Sheet.
+    Retrieves and displays only the Name, Price, and Quantity for each quilt from the Google Sheet.
     """
     print_divider()
     print("Quilt Inventory")
@@ -157,9 +157,13 @@ def view_quilts():
         quilts = sheet.get_all_values()
 
         if len(quilts) > 1:
-            headers = ["Name", "Material", "Fill", 
-            "Tog", "Size", "Price", "Quantity"]
-            table = quilts[1:]  # Skip the header row from Google Sheets
+            # Headers for the table
+            headers = ["Name", "Price", "Quantity"]
+            
+            # Extract only Name, Price, and Quantity columns (0, 5, and 6)
+            table = [[row[0], row[5], row[6]] for row in quilts[1:]]  # Skip header row
+
+            # Print table using tabulate
             print(tabulate(table, headers, tablefmt="grid"))
         else:
             print("\nNo quilts found in inventory.")
